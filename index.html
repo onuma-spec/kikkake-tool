@@ -301,6 +301,16 @@
     top: 0;
     z-index: 1;
   }
+  tr.data-row {
+    cursor: pointer;
+  }
+  tr.data-row:hover, tr.data-row:focus {
+    background: var(--bg);
+    outline: none;
+  }
+  tr.data-row.expanded td {
+    white-space: normal;
+  }
 </style>
 </head>
 <body>
@@ -587,8 +597,10 @@ function csvEscape(v) {
 // --- データ確認タブ：一覧テーブル ---
 const loadDataBtn = document.getElementById('loadDataBtn');
 const dataTableWrap = document.getElementById('dataTableWrap');
+let currentRows = [];
 
 function renderDataTable(rows) {
+  currentRows = rows || [];
   if (!rows || rows.length === 0) {
     dataTableWrap.innerHTML = '<p class="field-hint">まだデータがありません。</p>';
     return;
@@ -596,17 +608,50 @@ function renderDataTable(rows) {
   let html = '<div class="tbl-scroll"><table class="data-tbl"><thead><tr>' +
     '<th>投稿日時</th><th>📚 書籍・動画</th><th>💸 実生活</th><th>🏛 現場</th><th>✏️ その他</th>' +
     '</tr></thead><tbody>';
-  rows.forEach(r => {
+  rows.forEach((r, i) => {
     const d = new Date(r.submitted_at).toLocaleString('ja-JP');
-    html += '<tr><td>' + escapeHtml(d) + '</td>' +
-      '<td>' + escapeHtml(truncate(r.story_book)) + '</td>' +
-      '<td>' + escapeHtml(truncate(r.story_life)) + '</td>' +
-      '<td>' + escapeHtml(truncate(r.story_genba)) + '</td>' +
-      '<td>' + escapeHtml(truncate(r.story_other)) + '</td></tr>';
+    html += '<tr class="data-row" data-idx="' + i + '" tabindex="0">' +
+      '<td>' + escapeHtml(d) + '</td>' +
+      '<td class="cell-book">' + escapeHtml(truncate(r.story_book)) + '</td>' +
+      '<td class="cell-life">' + escapeHtml(truncate(r.story_life)) + '</td>' +
+      '<td class="cell-genba">' + escapeHtml(truncate(r.story_genba)) + '</td>' +
+      '<td class="cell-other">' + escapeHtml(truncate(r.story_other)) + '</td></tr>';
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div>' +
+    '<p class="field-hint" style="margin-top:8px;">※ 行をクリック（またはEnter）すると全文表示に切り替わります</p>';
   dataTableWrap.innerHTML = html;
 }
+
+function toggleRowExpand(row) {
+  const idx = Number(row.dataset.idx);
+  const r = currentRows[idx];
+  if (!r) return;
+  const expanded = row.classList.toggle('expanded');
+  const cells = {
+    book: row.querySelector('.cell-book'),
+    life: row.querySelector('.cell-life'),
+    genba: row.querySelector('.cell-genba'),
+    other: row.querySelector('.cell-other')
+  };
+  cells.book.textContent = expanded ? (r.story_book || '') : truncate(r.story_book);
+  cells.life.textContent = expanded ? (r.story_life || '') : truncate(r.story_life);
+  cells.genba.textContent = expanded ? (r.story_genba || '') : truncate(r.story_genba);
+  cells.other.textContent = expanded ? (r.story_other || '') : truncate(r.story_other);
+}
+
+dataTableWrap.addEventListener('click', (e) => {
+  const row = e.target.closest('tr.data-row');
+  if (row) toggleRowExpand(row);
+});
+
+dataTableWrap.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('tr.data-row');
+  if (row) {
+    e.preventDefault();
+    toggleRowExpand(row);
+  }
+});
 
 async function loadDataTable() {
   dataTableWrap.innerHTML = '<p class="field-hint">読み込み中...</p>';
