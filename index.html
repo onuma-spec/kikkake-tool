@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>きっかけ収集ツール</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card-bg: #ffffff;
+    --text: #222;
+    --text-sub: #555;
+    --border: #ddd;
+    --accent: #2b6cb0;
+    --accent-hover: #1f4e80;
+    --notice-bg: #fff8e1;
+    --notice-border: #f0c419;
+    --danger: #b3261e;
+    --success-bg: #e6f4ea;
+    --success-text: #1e4620;
+    --warn-bg: #fff3cd;
+    --warn-text: #7a5b00;
+    --warn-border: #e0b400;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --card-bg: #262626;
+      --text: #eee;
+      --text-sub: #aaa;
+      --border: #444;
+      --accent: #5b9bd5;
+      --accent-hover: #79b1e0;
+      --notice-bg: #3a3320;
+      --notice-border: #8a7328;
+      --danger: #ff8a80;
+      --success-bg: #1f3d29;
+      --success-text: #a8e6b0;
+      --warn-bg: #3a3320;
+      --warn-text: #f0d080;
+      --warn-border: #8a7328;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  .lead {
+    color: var(--text-sub);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+  }
+  .proto-flag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .notice {
+    background: var(--notice-bg);
+    border: 1px solid var(--notice-border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+  }
+  .notice h2, .notice h3 {
+    font-size: 0.95rem;
+    margin: 0 0 8px;
+  }
+  .notice p { margin: 6px 0; }
+  .notice .warn { color: var(--danger); font-weight: 600; }
+  .notice a { color: var(--accent); font-weight: 600; }
+  label.field-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+  }
+  .quick-note {
+    font-size: 0.78rem;
+    color: var(--text-sub);
+    border-left: 3px solid var(--warn-border);
+    padding: 2px 0 2px 10px;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .field-group {
+    margin-bottom: 22px;
+  }
+  .field-group:last-child {
+    margin-bottom: 0;
+  }
+  .field-group .field-label {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .field-group .field-hint {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-sub);
+    font-weight: 400;
+    margin-bottom: 8px;
+  }
+  .field-group .optional-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-sub);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+  .field-group .char-count {
+    margin-top: 2px;
+  }
+  .consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.88rem;
+    margin-top: 20px;
+    color: var(--text-sub);
+  }
+  .consent input { margin-top: 4px; }
+  button#submitBtn {
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  button#submitBtn:disabled {
+    background: var(--border);
+    color: var(--text-sub);
+    cursor: not-allowed;
+  }
+  button#submitBtn:not(:disabled):hover {
+    background: var(--accent-hover);
+  }
+  #msg {
+    margin-top: 14px;
+    font-size: 0.9rem;
+    display: none;
+    padding: 12px 14px;
+    border-radius: 8px;
+  }
+  #msg.success {
+    display: block;
+    background: var(--success-bg);
+    color: var(--success-text);
+  }
+  #msg.error {
+    display: block;
+    background: var(--danger);
+    color: #fff;
+  }
+  #msg.warn {
+    display: block;
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border: 1px solid var(--warn-border);
+  }
+  .char-count {
+    text-align: right;
+    font-size: 0.78rem;
+    color: var(--text-sub);
+    margin-top: 4px;
+  }
+  footer.page {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-sub);
+    margin-top: 32px;
+  }
+  .dl-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .dl-option {
+    flex: 1;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+  }
+  .dl-btn {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .dl-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+  .dl-caption {
+    font-size: 0.72rem;
+    color: var(--text-sub);
+    margin: 5px 0 0;
+    text-align: center;
+  }
+  .dl-msg {
+    margin-top: 10px;
+    font-size: 0.82rem;
+    color: var(--text-sub);
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-btn:hover:not(.active) {
+    color: var(--text);
+  }
+  .tab-panel[hidden] {
+    display: none;
+  }
+  .tbl-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 50vh;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table.data-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  table.data-tbl th, table.data-tbl td {
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.data-tbl th {
+    background: var(--card-bg);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="proto-flag">テスト運用中・公開前に文言確認予定</span>
+  <h1>きっかけ収集ツール</h1>
+  <p class="lead">減税・歳出削減・小さな政府に関心を持ったきっかけを、投稿・閲覧・分析できるツールです。いただいた回答は匿名データとして公開し、「📊 データ確認」タブでどなたでも自由に閲覧・ダウンロード・二次利用できます。分析結果は「📈 運営者による分析結果」タブで公開します。</p>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab-btn active" data-tab="form" role="tab" aria-selected="true" aria-controls="panel-form" id="tab-btn-form">📝 投稿フォーム</button>
+    <button type="button" class="tab-btn" data-tab="data" role="tab" aria-selected="false" aria-controls="panel-data" id="tab-btn-data">📊 データ確認</button>
+    <button type="button" class="tab-btn" data-tab="analysis" role="tab" aria-selected="false" aria-controls="panel-analysis" id="tab-btn-analysis">📈 運営者による分析結果</button>
+  </div>
+
+  <div class="tab-panel" id="panel-form" role="tabpanel" aria-labelledby="tab-btn-form">
+  <div class="card">
+    <label class="field-label">📝 きっかけを投稿する</label>
+    <p class="field-hint">減税・歳出削減・小さな政府に関心を持った、あなたの「きっかけ」を教えてください。</p>
+
+  <form id="kikkakeForm">
+    <p class="quick-note">✅ どれか1つで十分です　／　✍️ 引用ではなくあなたの言葉で　／　⚠ 個人や組織が特定される情報は書かないでください</p>
+
+      <div class="field-group">
+        <label class="field-label" for="story-book">
+          📚 書籍・動画きっかけの場合はこちら
+          <span class="optional-tag">任意</span>
+        </label>
+        <textarea class="story-field" id="story-book" maxlength="1000" placeholder="例）『◯◯』という本を読んで、△△という考え方を知った。"></textarea>
+        <div class="char-count"><span class="cc">0</span> / 1000</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="story-life">
+          💸 実生活エピソードきっかけの場合はこちら
+          <span class="optional-tag">任意</span>
+        </label>
+        <textarea class="story-field" id="story-life" maxlength="1000" placeholder="例）確定申告で、自分が納めている税額の大きさに驚いた。"></textarea>
+        <div class="char-count"><span class="cc">0</span> / 1000</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="story-genba">
+          🏛 現場エピソードきっかけの場合はこちら
+          <span class="optional-tag">任意</span>
+        </label>
+        <textarea class="story-field" id="story-genba" maxlength="1000" placeholder="例）前例主義のまま続く、非効率な予算執行を目の当たりにした。"></textarea>
+        <div class="char-count"><span class="cc">0</span> / 1000</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="story-other">
+          ✏️ その他のきっかけの場合はこちら
+          <span class="optional-tag">任意</span>
+        </label>
+        <textarea class="story-field" id="story-other" maxlength="1000" placeholder="上記のどれにも当てはまらない場合に、自由にお書きください。"></textarea>
+        <div class="char-count"><span class="cc">0</span> / 1000</div>
+      </div>
+
+      <p class="field-hint" style="margin-top:-6px;">※ 本や出来事だけでなく、その根底にある考え方（例：自立を重視している、等）があれば、文中に触れていただけると助かります。</p>
+
+    <div class="notice">
+      <h3>📄 送信・公開について（送信前に必ずお読みください）</h3>
+      <p>送信前に、電話番号・メールアドレス・URL・氏名を明示する表現が含まれていないかを自動でチェックします。該当した場合は送信をブロックし、書き直しをお願いします。ただし<strong>文脈から個人や組織が特定されうる内容までは自動では判定できません。</strong>この自動チェックを通過した内容は、人による確認を挟まず<strong>そのままただちに公開</strong>されます。</p>
+      <p>公開データの利用条件：「本素材の利用によって生じる一切の収益は利用者に帰属し、同時に、利用に伴う一切の費用、損失、損害、およびトラブルの責任は、すべて利用者側の自己責任（負担）となります。運営者はこれらについて何ら責任を負いません（完全免責）。」</p>
+      <p>一度公開すると完全な削除は難しくなります。また、批判的な文脈で引用される可能性もあります。<strong>匿名で収集する性質上、投稿者ご本人からの削除要請には対応できません。</strong>ただし、第三者の著作権を侵害する内容が含まれる場合は、個別に確認の上、対応することがあります。公開されても構わない内容か、送信前に十分ご確認ください。</p>
+    </div>
+
+    <label class="consent">
+      <input type="checkbox" id="consentCheck" required>
+      <span>上記の内容（回答の公開・自由利用・完全免責）を理解した上で送信します</span>
+    </label>
+
+    <button type="submit" id="submitBtn" disabled>送信する</button>
+    <div id="msg"></div>
+  </form>
+  </div>
+
+  </div>
+
+  <div class="tab-panel" id="panel-data" hidden role="tabpanel" aria-labelledby="tab-btn-data">
+    <div class="card" id="downloadCard">
+      <label class="field-label">📊 集まったデータの確認</label>
+      <p class="field-hint">自動チェックを通過し公開された回答のみが対象です。どなたでも自由にダウンロード・分析・二次利用いただけます。</p>
+      <button type="button" id="loadDataBtn" class="dl-btn" style="margin-bottom:10px;">読み込む</button>
+      <div id="dataTableWrap"></div>
+      <div class="dl-buttons">
+        <div class="dl-option">
+          <button type="button" id="dlCsvBtn" class="dl-btn">CSVでダウンロード</button>
+          <p class="dl-caption">Excel・Googleスプレッドシート等で表として見たい方はこちら</p>
+        </div>
+        <div class="dl-option">
+          <button type="button" id="dlJsonBtn" class="dl-btn">JSONでダウンロード</button>
+          <p class="dl-caption">ChatGPTやClaude等のAIに貼り付けて分析してもらいたい方はこちら</p>
+        </div>
+      </div>
+      <div id="dlMsg" class="dl-msg"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-analysis" hidden role="tabpanel" aria-labelledby="tab-btn-analysis">
+    <div class="card">
+      <label class="field-label">📈 運営者による分析結果</label>
+      <p class="field-hint">実データが十分に集まり次第、運営者による分析結果をここで公開する予定です。現在待機中です。</p>
+    </div>
+  </div>
+
+  <footer class="page">
+    本フォームは個人情報（氏名・メールアドレス等）を収集しません。<br>
+    本ツールは「VS Code × Claude Code」との対話を通じて作成しています。
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://unkhamvtfathmoxmikmp.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_UArsQ1bcdira6J91O8kXjA_nGJ6MGtz";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const TABLE = "kikkake";
+
+// --- タブ切り替え ---
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = {
+  form: document.getElementById('panel-form'),
+  data: document.getElementById('panel-data'),
+  analysis: document.getElementById('panel-analysis')
+};
+let dataTabLoaded = false;
+
+function switchTab(name) {
+  tabBtns.forEach(b => {
+    const isActive = b.dataset.tab === name;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  Object.entries(tabPanels).forEach(([key, el]) => { el.hidden = (key !== name); });
+  if (name === 'data' && !dataTabLoaded) {
+    dataTabLoaded = true;
+    loadDataTable();
+  }
+}
+
+tabBtns.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function truncate(s) {
+  if (!s) return '';
+  return s.length > 40 ? s.slice(0, 40) + '…' : s;
+}
+
+const storyFields = document.querySelectorAll('.story-field');
+const consentEl = document.getElementById('consentCheck');
+const submitBtn = document.getElementById('submitBtn');
+const msgEl = document.getElementById('msg');
+const form = document.getElementById('kikkakeForm');
+
+const FIELD_LABELS = {
+  'story-book': '📚 書籍・動画',
+  'story-life': '💸 実生活エピソード',
+  'story-genba': '🏛 現場エピソード',
+  'story-other': '✏️ その他'
+};
+
+// 送信前の自動チェック（電話番号・メール・URL・氏名の明示表現）
+// あくまで明白なパターンの検出であり、文脈からの個人特定までは判定できない
+const PII_PATTERNS = [
+  { test: /0\d{1,4}-\d{1,4}-\d{3,4}/, label: '電話番号らしき数字列' },
+  { test: /[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/, label: 'メールアドレスらしき文字列' },
+  { test: /https?:\/\/\S+/, label: 'URL' },
+  { test: /(私|僕|自分)の名前は|本名は/, label: '氏名を明示する表現' }
+];
+
+function findPiiMatch(text) {
+  for (const p of PII_PATTERNS) {
+    if (p.test.test(text)) return p.label;
+  }
+  return null;
+}
+
+storyFields.forEach(field => {
+  const countEl = field.closest('.field-group').querySelector('.cc');
+  field.addEventListener('input', () => {
+    countEl.textContent = field.value.length;
+    updateSubmitState();
+  });
+});
+
+consentEl.addEventListener('change', updateSubmitState);
+
+function updateSubmitState() {
+  const hasAnyStory = Array.from(storyFields).some(f => f.value.trim().length > 0);
+  const consented = consentEl.checked;
+  submitBtn.disabled = !(hasAnyStory && consented);
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msgEl.className = '';
+
+  // 送信前チェック：4欄すべてを対象に、明白なPIIパターンがないか確認
+  for (const field of storyFields) {
+    const match = findPiiMatch(field.value);
+    if (match) {
+      msgEl.className = 'warn';
+      msgEl.textContent =
+        '⚠ 「' + FIELD_LABELS[field.id] + '」欄に、' + match + 'が含まれている可能性があります。' +
+        '個人が特定される情報は書かないよう、内容を書き直してから再度送信してください。';
+      field.focus();
+      return;
+    }
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = '送信中...';
+
+  const payload = {
+    story_book: document.getElementById('story-book').value.trim() || null,
+    story_life: document.getElementById('story-life').value.trim() || null,
+    story_genba: document.getElementById('story-genba').value.trim() || null,
+    story_other: document.getElementById('story-other').value.trim() || null
+  };
+
+  try {
+    const { error } = await sb.from(TABLE).insert(payload);
+    if (error) throw error;
+
+    msgEl.className = 'success';
+    msgEl.textContent = '送信しました。ご協力ありがとうございました。';
+    form.reset();
+    storyFields.forEach(f => {
+      f.closest('.field-group').querySelector('.cc').textContent = '0';
+    });
+    submitBtn.textContent = '送信する';
+  } catch (err) {
+    msgEl.className = 'error';
+    msgEl.textContent = '送信に失敗しました。時間をおいて再度お試しください。';
+    submitBtn.textContent = '送信する';
+    submitBtn.disabled = false;
+  }
+});
+
+// --- 生データダウンロード（審査済み reviewed=true のみ。RLSで自動的に絞り込まれる） ---
+const dlCsvBtn = document.getElementById('dlCsvBtn');
+const dlJsonBtn = document.getElementById('dlJsonBtn');
+const dlMsg = document.getElementById('dlMsg');
+const DL_COLUMNS = ['id', 'story_book', 'story_life', 'story_genba', 'story_other', 'submitted_at'];
+
+async function fetchReviewedRows() {
+  dlMsg.textContent = '取得中...';
+  const { data, error } = await sb
+    .from(TABLE)
+    .select(DL_COLUMNS.join(','))
+    .order('submitted_at', { ascending: true });
+  if (error) {
+    dlMsg.textContent = '取得に失敗しました：' + error.message;
+    return null;
+  }
+  dlMsg.textContent = data.length + '件を取得しました';
+  return data;
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+// --- データ確認タブ：一覧テーブル ---
+const loadDataBtn = document.getElementById('loadDataBtn');
+const dataTableWrap = document.getElementById('dataTableWrap');
+
+function renderDataTable(rows) {
+  if (!rows || rows.length === 0) {
+    dataTableWrap.innerHTML = '<p class="field-hint">まだデータがありません。</p>';
+    return;
+  }
+  let html = '<div class="tbl-scroll"><table class="data-tbl"><thead><tr>' +
+    '<th>投稿日時</th><th>📚 書籍・動画</th><th>💸 実生活</th><th>🏛 現場</th><th>✏️ その他</th>' +
+    '</tr></thead><tbody>';
+  rows.forEach(r => {
+    const d = new Date(r.submitted_at).toLocaleString('ja-JP');
+    html += '<tr><td>' + escapeHtml(d) + '</td>' +
+      '<td>' + escapeHtml(truncate(r.story_book)) + '</td>' +
+      '<td>' + escapeHtml(truncate(r.story_life)) + '</td>' +
+      '<td>' + escapeHtml(truncate(r.story_genba)) + '</td>' +
+      '<td>' + escapeHtml(truncate(r.story_other)) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  dataTableWrap.innerHTML = html;
+}
+
+async function loadDataTable() {
+  dataTableWrap.innerHTML = '<p class="field-hint">読み込み中...</p>';
+  const rows = await fetchReviewedRows();
+  renderDataTable(rows || []);
+}
+
+loadDataBtn.addEventListener('click', loadDataTable);
+
+dlCsvBtn.addEventListener('click', async () => {
+  const rows = await fetchReviewedRows();
+  if (!rows) return;
+  const header = DL_COLUMNS.join(',');
+  const body = rows.map(r => DL_COLUMNS.map(c => csvEscape(r[c])).join(',')).join('\n');
+  downloadBlob('﻿' + header + '\n' + body, 'kikkake.csv', 'text/csv;charset=utf-8');
+});
+
+dlJsonBtn.addEventListener('click', async () => {
+  const rows = await fetchReviewedRows();
+  if (!rows) return;
+  downloadBlob(JSON.stringify(rows, null, 2), 'kikkake.json', 'application/json;charset=utf-8');
+});
+</script>
+</body>
+</html>
