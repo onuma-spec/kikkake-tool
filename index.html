@@ -311,6 +311,25 @@
   tr.data-row.expanded td {
     white-space: normal;
   }
+  .report-btn {
+    font-size: 0.72rem;
+    padding: 4px 8px;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .report-btn:hover:not(:disabled) {
+    background: var(--danger);
+    color: #fff;
+  }
+  .report-btn:disabled {
+    border-color: var(--border);
+    color: var(--text-sub);
+    cursor: default;
+  }
 </style>
 </head>
 <body>
@@ -393,6 +412,7 @@
     <div class="card" id="downloadCard">
       <label class="field-label">📊 集まったデータの確認</label>
       <p class="field-hint">自動チェックを通過し公開された回答のみが対象です。どなたでも自由にダウンロード・分析・二次利用いただけます。</p>
+      <p class="field-hint">🚩 個人情報の記載など、問題のある投稿を見つけた場合は各行の「報告する」から通報できます。複数の報告が集まると一時的に非公開になります。</p>
       <button type="button" id="loadDataBtn" class="dl-btn" style="margin-bottom:10px;">読み込む</button>
       <div id="dataTableWrap"></div>
       <div class="dl-buttons">
@@ -599,27 +619,64 @@ const loadDataBtn = document.getElementById('loadDataBtn');
 const dataTableWrap = document.getElementById('dataTableWrap');
 let currentRows = [];
 
+const REPORTED_KEY = 'kikkake_reported_ids';
+
+function getReportedIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(REPORTED_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function addReportedId(id) {
+  const s = getReportedIds();
+  s.add(id);
+  localStorage.setItem(REPORTED_KEY, JSON.stringify(Array.from(s)));
+}
+
 function renderDataTable(rows) {
   currentRows = rows || [];
   if (!rows || rows.length === 0) {
     dataTableWrap.innerHTML = '<p class="field-hint">まだデータがありません。</p>';
     return;
   }
+  const reportedIds = getReportedIds();
   let html = '<div class="tbl-scroll"><table class="data-tbl"><thead><tr>' +
-    '<th>投稿日時</th><th>📚 書籍・動画</th><th>💸 実生活</th><th>🏛 現場</th><th>✏️ その他</th>' +
+    '<th>投稿日時</th><th>📚 書籍・動画</th><th>💸 実生活</th><th>🏛 現場</th><th>✏️ その他</th><th>操作</th>' +
     '</tr></thead><tbody>';
   rows.forEach((r, i) => {
     const d = new Date(r.submitted_at).toLocaleString('ja-JP');
+    const reported = reportedIds.has(r.id);
     html += '<tr class="data-row" data-idx="' + i + '" tabindex="0">' +
       '<td>' + escapeHtml(d) + '</td>' +
       '<td class="cell-book">' + escapeHtml(truncate(r.story_book)) + '</td>' +
       '<td class="cell-life">' + escapeHtml(truncate(r.story_life)) + '</td>' +
       '<td class="cell-genba">' + escapeHtml(truncate(r.story_genba)) + '</td>' +
-      '<td class="cell-other">' + escapeHtml(truncate(r.story_other)) + '</td></tr>';
+      '<td class="cell-other">' + escapeHtml(truncate(r.story_other)) + '</td>' +
+      '<td><button type="button" class="report-btn" data-id="' + r.id + '"' + (reported ? ' disabled' : '') + '>' +
+        (reported ? '報告済み' : '🚩 報告する') + '</button></td>' +
+      '</tr>';
   });
   html += '</tbody></table></div>' +
     '<p class="field-hint" style="margin-top:8px;">※ 行をクリック（またはEnter）すると全文表示に切り替わります</p>';
   dataTableWrap.innerHTML = html;
+}
+
+async function handleReport(btn) {
+  const id = Number(btn.dataset.id);
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+  try {
+    const { error } = await sb.from('kikkake_reports').insert({ kikkake_id: id });
+    if (error) throw error;
+    addReportedId(id);
+    btn.textContent = '報告済み';
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '🚩 報告する';
+    alert('報告に失敗しました。時間をおいて再度お試しください。');
+  }
 }
 
 function toggleRowExpand(row) {
@@ -640,6 +697,12 @@ function toggleRowExpand(row) {
 }
 
 dataTableWrap.addEventListener('click', (e) => {
+  const reportBtn = e.target.closest('.report-btn');
+  if (reportBtn) {
+    e.stopPropagation();
+    handleReport(reportBtn);
+    return;
+  }
   const row = e.target.closest('tr.data-row');
   if (row) toggleRowExpand(row);
 });

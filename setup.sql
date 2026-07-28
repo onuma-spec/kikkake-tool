@@ -10,6 +10,11 @@
 --   alter table zeigen_kikkake rename to kikkake;
 --   alter sequence zeigen_kikkake_id_seq rename to kikkake_id_seq;
 -- （リネームのためデータ・RLSポリシー・権限はそのまま引き継がれる）
+--
+-- 2026-07-28追記：クライアント側のPIIチェックは、ブラウザを経由しない直接の
+-- API呼び出しでは効かないことが判明（実際にcurlでの直接POSTが素通りすることを
+-- 確認した）。DB側にも同じパターンのCHECK制約を追加し、投稿経路に関わらず
+-- 弾かれるようにした（no_obvious_pii制約、下記CREATE TABLEに含む）。
 
 create table kikkake (
   id            bigserial primary key,
@@ -30,6 +35,14 @@ create table kikkake (
     coalesce(length(story_life), 0)  <= 1000 and
     coalesce(length(story_genba), 0) <= 1000 and
     coalesce(length(story_other), 0) <= 1000
+  ),
+  -- DB側でも電話番号・メール・URLの明白なパターンを弾く（ブラウザ経由の投稿・
+  -- 直接API経由の投稿の両方に一律で効く。クライアント側チェックの補完）
+  constraint no_obvious_pii check (
+    story_book  !~ '0\d{1,4}-\d{1,4}-\d{3,4}' and story_book  !~ '[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}' and story_book  !~ 'https?://\S+' and
+    story_life  !~ '0\d{1,4}-\d{1,4}-\d{3,4}' and story_life  !~ '[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}' and story_life  !~ 'https?://\S+' and
+    story_genba !~ '0\d{1,4}-\d{1,4}-\d{3,4}' and story_genba !~ '[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}' and story_genba !~ 'https?://\S+' and
+    story_other !~ '0\d{1,4}-\d{1,4}-\d{3,4}' and story_other !~ '[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}' and story_other !~ 'https?://\S+'
   )
 );
 
